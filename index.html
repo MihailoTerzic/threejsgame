@@ -1,40 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Space Assault</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-<style>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-  body {
-    margin: 0;
-    overflow: hidden;
-    background-image: url('/background.jpg');
-    background-size: contain;
-    font-family: 'Press Start 2P', monospace;
-  }
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-top">
+    <div class="hud-left">
+      <div class="hud-stat" id="score-el">Score: 0</div>
+      <div class="hud-stat hud-lives" id="health-el">Lives: ❤️❤️❤️</div>
+      <div class="hud-stat hud-wave" id="wave-el">Wave: 1</div>
+      <div class="hud-stat hud-combo" id="combo-el"></div>
+      <div class="hud-stat hud-ammo" id="ammo-el">Ammo: 30 / 30</div>
+    </div>
+    <div class="diff-btns">
+      <button class="diff-btn" data-level="easy">Easy</button>
+      <button class="diff-btn active" data-level="medium">Medium</button>
+      <button class="diff-btn" data-level="pro">Pro</button>
+    </div>
+  </div>
+</div>
 
-  .hud {
-    color: #ffd700;
-    text-shadow: 0 0 10px #ffcc00;
-    font-size: 14px;
-  }
+<!-- Kill feed -->
+<div id="kill-feed"></div>
 
-  button {
-    font-family: 'Press Start 2P', monospace;
-    background: #111;
-    color: #ffd700;
-    border: 2px solid #ffd700;
-    padding: 10px 12px;
-    cursor: pointer;
-    transition: 0.2s;
-  }
+<!-- XP bar -->
+<div id="xp-bar-wrap">
+  <div id="xp-label">Level 1 — XP 0 / 20</div>
+  <div id="xp-bar-bg"><div id="xp-bar"></div></div>
+</div>
 
-  button:hover {
-    background: #ffd700;
-    color: #111;
-    box-shadow: 0 0 15px #ffd700;
-  }
+<!-- Health bar -->
+<div id="health-bar-wrap">
+  <div id="health-bar-label">HP</div>
+  <div id="health-bar-bg"><div id="health-bar"></div></div>
+</div>
 
-</style>
+<!-- Level up -->
+<div id="level-up-msg">LEVEL UP!</div>
 
+<!-- Controls hint -->
+<div id="controls-hint">
+  WASD: Move &nbsp;|&nbsp; SPACE: Jump (x3) &nbsp;|&nbsp; F: Shoot &nbsp;|&nbsp; R: Reload &nbsp;|&nbsp; SHIFT: Sprint
+</div>
+
+<!-- Start / Game Over overlay -->
+<div id="overlay">
+  <div id="overlay-box">
+    <div id="overlay-title">SPACE ASSAULT</div>
+    <div id="overlay-sub">
+      WASD — Move &nbsp;|&nbsp; SPACE — Jump (3x)<br>
+      F — Shoot &nbsp;|&nbsp; R — Reload &nbsp;|&nbsp; SHIFT — Sprint<br><br>
+      Survive the waves. Build your combo.<br>
+      Level up to restore HP.
+    </div>
+    <div id="overlay-score"></div>
+    <button class="overlay-btn" id="start-btn">► START GAME</button>
+  </div>
+</div>
+
+<!-- Three.js via importmap -->
 <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
-
 <script type="importmap">
 {
   "imports": {
@@ -43,494 +75,6 @@
   }
 }
 </script>
-
-<script type="module">
-import * as THREE from 'three'
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
-
-// =========================
-// SCENE
-// =========================
-const scene = new THREE.Scene()
-scene.fog = new THREE.Fog('#050816', 10, 60)
-
-const camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-)
-
-camera.position.set(0, 3, 6)
-
-const renderer = new THREE.WebGLRenderer({
-  antialias: true,
-  alpha: true
-})
-
-renderer.setSize(window.innerWidth, window.innerHeight)
-renderer.shadowMap.enabled = true
-document.body.appendChild(renderer.domElement)
-
-const controls = new OrbitControls(camera, renderer.domElement)
-controls.enableDamping = true
-
-// =========================
-// UI
-// =========================
-const scoreElement = document.createElement('div')
-scoreElement.style = `
-position:absolute;top:20px;left:20px;
-color:#ffd700;
-font-family:'Press Start 2P', monospace;
-font-size:14px;
-text-shadow:0 0 10px #ffcc00;
-
-`
-scoreElement.innerHTML = 'Score: 0'
-document.body.appendChild(scoreElement)
-
-
-const healthElement = document.createElement('div')
-
-healthElement.style = `
-position:absolute;
-top:55px;
-left:20px;
-color:#ff4444;
-font-family:'Press Start 2P', monospace;
-font-size:14px;
-text-shadow:0 0 10px #ff0000;
-`
-
-healthElement.innerHTML = 'Lives: ❤️❤️❤️'
-
-document.body.appendChild(healthElement)
-
-function updateHealthUI() {
-  healthElement.innerHTML =
-    'Lives: ' + '❤️'.repeat(health)
-}
-
-
-const difficultyElement = document.createElement('div')
-difficultyElement.style = `
-position:absolute;top:20px;right:20px;
-display:flex;gap:10px;
-`
-difficultyElement.innerHTML = `
-<button class="difficultyBtn" data-level="easy">Easy</button>
-<button class="difficultyBtn" data-level="medium">Medium</button>
-<button class="difficultyBtn" data-level="pro">Pro</button>
-`
-document.body.appendChild(difficultyElement)
-
-document.querySelectorAll('.difficultyBtn').forEach((b) => {
-  b.style.fontFamily = "'Press Start 2P', monospace"
-  b.style.fontSize = "10px"
-  b.style.background = "#111"
-  b.style.color = "#ffd700"
-  b.style.border = "2px solid #ffd700"
-  b.style.textShadow = "0 0 8px #ffcc00"
-})
-
-const gameOverElement = document.createElement('div')
-gameOverElement.style = `
-position:absolute;
-top:50%;left:50%;
-transform:translate(-50%,-50%);
-color:#ffd700;
-font-family:'Press Start 2P', monospace;
-font-size:28px;
-text-align:center;
-display:none;
-text-shadow:0 0 20px #ffcc00;
-`
-
-
-
-gameOverElement.innerHTML = `
-GAME OVER<br><br>
-<button id="restartBtn" style="padding:12px 24px;font-size:24px;">
-Restart
-</button>
-`
-document.body.appendChild(gameOverElement)
-
-// =========================
-// LIGHTS
-// =========================
-scene.add(new THREE.AmbientLight(0x6a5acd, 0.4))
-
-const light = new THREE.DirectionalLight(0x00ffff, 1.5)
-
-light.position.set(5,10,5)
-scene.add(light)
-
-// =========================
-// GROUND
-// =========================
-const ground = new THREE.Mesh(
-  new THREE.BoxGeometry(20, 1, 100),
-  new THREE.MeshStandardMaterial({
-  color: '#0a0f2c',
-  emissive: '#081a2b',
-  roughness: 0.6,
-  metalness: 0.2
-})
-)
-
-ground.position.y = -2
-scene.add(ground)
-
-// =========================
-// INPUT
-// =========================
-const keys = {}
-let jumpCount = 0
-const maxJumps = 3
-
-// =========================
-// MODELS
-// =========================
-const loader = new GLTFLoader()
-
-loader.load('./background.jpg', (texture) => {
-  texture.colorSpace = THREE.SRGBColorSpace
-
-  // 🔥 ovo sprečava bilo kakvo “repeat” ponašanje
-  texture.wrapS = THREE.ClampToEdgeWrapping
-  texture.wrapT = THREE.ClampToEdgeWrapping
-
-  scene.background = texture
-})
-
-let hero = null
-let heroReady = false
-let heroVelocityY = 0
-
-let enemyModel1 = null
-let enemyModel2 = null
-
-const enemies = []
-
-const bullets = []
-
-let lastShot = 0
-const shootCooldown = 250
-
-loader.load('./hero.glb', (gltf) => {
-  hero = gltf.scene
-  hero.scale.set(1.2,1.2,1.2)
-  
-  hero.position.set(0,0,0)
-  hero.rotation.y = Math.PI
-  scene.add(hero)
-  heroReady = true
-})
-
-loader.load('./enemyrobot1.glb', (gltf) => {
-  enemyModel1 = gltf.scene
-})
-
-loader.load('./enemyrobot2.glb', (gltf) => {
-  enemyModel2 = gltf.scene
-})
-
-// =========================
-// DIFFICULTY
-// =========================
-let spawnRate = 55
-let enemyBaseSpeed = 0.08
-let difficulty = 'medium'
-
-function setDifficulty(level) {
-  difficulty = level
-
-  if (level === 'easy') {
-    spawnRate = 90
-    enemyBaseSpeed = 0.05
-  }
-  if (level === 'medium') {
-    spawnRate = 55
-    enemyBaseSpeed = 0.08
-  }
-  if (level === 'pro') {
-    spawnRate = 25
-    enemyBaseSpeed = 0.14
-  }
-}
-
-setDifficulty('medium')
-
-document.querySelectorAll('.difficultyBtn').forEach((b) => {
-  b.onclick = () => setDifficulty(b.dataset.level)
-})
-
-// =========================
-// INPUT EVENTS
-// =========================
-window.addEventListener('keydown', (e) => {
-  keys[e.code] = true
-
-  if (e.code === 'Space') {
-    if (jumpCount < maxJumps) {
-      heroVelocityY = 0.12
-      jumpCount++
-    }
-  }
-
-  if (e.code === 'KeyF') {
-  shoot()
-}
-})
-
-window.addEventListener('keyup', (e) => {
-  keys[e.code] = false
-})
-
-// =========================
-// SPAWN ENEMY
-// =========================
-function spawnEnemy() {
-  let enemy
-
-  const pick = Math.random() > 0.5 ? enemyModel1 : enemyModel2
-
-  if (pick) {
-    enemy = pick.clone()
-  } 
-  
-  
-  else {
-    enemy = new THREE.Mesh(
-      new THREE.BoxGeometry(1,1,1),
-      new THREE.MeshStandardMaterial({ color:'red' })
-    )
-  }
-const scale = 0.7 + Math.random() * 1.3
-
-enemy.scale.set(
-  scale,
-  scale,
-  scale
-)
-  enemy.position.set(
-    (Math.random() - 0.5) * 16,
-    0,
-    -40
-  )
-
-  enemy.speed = enemyBaseSpeed + Math.random() * 0.03
-
-  scene.add(enemy)
-  enemies.push(enemy)
-}
-
-function shoot() {
-
-  if (!hero) return
-
-  const now = Date.now()
-
-  if (now - lastShot < shootCooldown) return
-
-  lastShot = now
-
-  const bullet = new THREE.Mesh(
-    new THREE.BoxGeometry(0.15, 0.15, 1),
-    new THREE.MeshStandardMaterial({
-      color: 0x00ffff,
-      emissive: 0x00ffff
-    })
-  )
-
-  bullet.position.copy(hero.position)
-
-  bullet.position.y += 0.8
-
-  bullet.speed = 0.8
-
-  scene.add(bullet)
-
-  bullets.push(bullet)
-}
-
-function bulletHit(bullet, enemy) {
-
-  const dx = bullet.position.x - enemy.position.x
-  const dy = bullet.position.y - enemy.position.y
-  const dz = bullet.position.z - enemy.position.z
-
-  const distance = Math.sqrt(
-    dx * dx +
-    dy * dy +
-    dz * dz
-  )
-
-  return distance < (enemy.scale.x * 0.8)
-}
-
-// =========================
-// COLLISION
-// =========================
-function hit(a,b) {
-  const dx = a.position.x - b.position.x
-  const dy = a.position.y - b.position.y
-  const dz = a.position.z - b.position.z
-
-  return Math.sqrt(dx*dx + dy*dy + dz*dz) < 1.2
-}
-
-// =========================
-// GAME LOOP
-// =========================
-let frames = 0
-let score = 0
-let animationId
-let health = 3
-let invincible = false
-
-function animate() {
-  animationId = requestAnimationFrame(animate)
-
-  controls.update()
-
-  // =====================
-  // HERO MOVEMENT
-  // =====================
-  if (heroReady && hero) {
-
-    heroVelocityY += -0.005
-    hero.position.y += heroVelocityY
-
-    if (hero.position.y <= 0) {
-      hero.position.y = 0
-      heroVelocityY = 0
-      jumpCount = 0
-    }
-
-    if (keys['KeyA']) hero.position.x -= 0.12
-    if (keys['KeyD']) hero.position.x += 0.12
-    if (keys['KeyW']) hero.position.z -= 0.12
-    if (keys['KeyS']) hero.position.z += 0.12
-  }
-
-
-  bullets.forEach((bullet, bulletIndex) => {
-
-  bullet.position.z -= bullet.speed
-
-  if (bullet.position.z < -80) {
-
-    scene.remove(bullet)
-
-    bullets.splice(bulletIndex, 1)
-  }
-
-})
-  // =====================
-  // ENEMIES
-  // =====================
-  enemies.forEach((e,i) => {
-
-    e.position.z += e.speed
-
-    bullets.forEach((bullet, bulletIndex) => {
-
-  if (bulletHit(bullet, e)) {
-
-    scene.remove(bullet)
-    bullets.splice(bulletIndex, 1)
-
-    scene.remove(e)
-    enemies.splice(i, 1)
-
-    score += 5
-
-    scoreElement.innerHTML =
-      'Score: ' + score
-  }
-
-})
-
-   if (heroReady && hit(hero,e) && !invincible) {
-
-  health--
-
-  updateHealthUI()
-
-  scene.remove(e)
-  enemies.splice(i,1)
-
-  invincible = true
-
-  if (hero) {
-
-    const originalVisible = true
-
-    let blinkCount = 0
-
-    const blink = setInterval(() => {
-
-      hero.visible = !hero.visible
-
-      blinkCount++
-
-      if (blinkCount > 10) {
-
-        clearInterval(blink)
-
-        hero.visible = originalVisible
-
-        invincible = false
-      }
-
-    },100)
-  }
-
-  if (health <= 0) {
-
-    cancelAnimationFrame(animationId)
-
-    gameOverElement.style.display = 'block'
-  }
-}
-
-    if (e.position.z > 20) {
-      scene.remove(e)
-      enemies.splice(i,1)
-      score++
-      scoreElement.innerHTML = 'Score: ' + score
-    }
-  })
-
-  // =====================
-  // SPAWN
-  // =====================
-  if (frames % spawnRate === 0) {
-    spawnEnemy()
-    
-    if (difficulty === 'pro') spawnEnemy()
-  }
-
-  frames++
-
-  renderer.render(scene,camera)
-}
-
-animate()
-
-// restart
-document.addEventListener('click', (e) => {
-  if (e.target.id === 'restartBtn') location.reload()
-})
-
-// resize
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth/window.innerHeight
-  camera.updateProjectionMatrix()
-  renderer.setSize(window.innerWidth, window.innerHeight)
-})
-</script>
+<script type="module" src="engine.js"></script> 
+</body>
+</html>
